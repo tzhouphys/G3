@@ -8,8 +8,8 @@ from multiprocessing import Pool, cpu_count
 
 #CHN = 9
 for CHN in range(1, 10):
-    events = pylhe.read_lhe_with_attributes(f"events/run_0{CHN}/unweighted_events.lhe")
-    Nevents = int(1e4)
+    events = pylhe.read_lhe_with_attributes(f"events/500k_channels/run_0{CHN}/unweighted_events.lhe")
+    Nevents = int(5e5)
     counter = 0
     particle_list = []
 
@@ -80,4 +80,4 @@ for CHN in range(1, 10):
         # Collect results
         amp_list_combined = np.array(results).reshape(len(phi_list), len(eta_list)).T
         # save the data
-        np.save(f'data/amp_list_channel_{CHN}_test.npy', amp_list_combined)
+        np.save(f'data/amp_list_channel_{CHN}_500k.npy', amp_list_combined)

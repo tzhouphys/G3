@@ -7,7 +7,7 @@ import time
 from multiprocessing import Pool, cpu_count
 
 no = 1
-events = pylhe.read_lhe_with_attributes("events/run_01/unweighted_events.lhe")
+events = pylhe.read_lhe_with_attributes("events/500k_channels/run_07/unweighted_events.lhe")
 Nevents = int(1e4)
 counter = 0
 particle_list = []
