@@ -7,18 +7,16 @@ import time
 from multiprocessing import Pool, cpu_count
 
 no = 1
-events = pylhe.read_lhe_with_attributes("events/500k_channels/run_07/unweighted_events.lhe")
-Nevents = int(1e4)
-counter = 0
+events = pylhe.read_lhe_with_attributes("events/1m_channels/unweighted_events.lhe")
+Nevents = int(1e6)
 particle_list = []
 
 # load particles from the LHE file
 for event in events:
     for particle in event.particles:
-        if abs(particle.id) <= 6 or particle.id == 21:  # quarks and gluons
-            counter += 1
+        #if abs(particle.id) <= 6 or particle.id == 21:  # quarks and gluons
             # save the information of the particle
-            particle_list.append([particle.e, particle.px, particle.py, particle.pz])
+        particle_list.append([particle.e, particle.px, particle.py, particle.pz])
             #print(f"ID: {particle.id}, E: {particle.e}, px: {particle.px}, py: {particle.py}, pz: {particle.pz}")
     #print("--------------------------------------------------")
 
@@ -79,7 +77,7 @@ if __name__ == "__main__":
     # Collect results
     amp_list_combined = np.array(results).reshape(len(phi_list), len(eta_list)).T
     # save the data
-    np.save(f'data/amp_list_test.npy', amp_list_combined)
+    np.save(f'data/amp_list_test_1M.npy', amp_list_combined)
 
 # import matplotlib.pyplot as plte
 # plt.rc('text', usetex=True)

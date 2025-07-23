@@ -53,8 +53,10 @@ for CHN in range(1, 10):
             p2 = np.array(particle_list[event_no*4+1])
             k1 = np.array(particle_list[event_no*4+2])
             k2 = np.array(particle_list[event_no*4+3])
+            # initial-final color connections
             radiation_amplitude_pk += ((radiation_amplitude(p1, k1, l)+radiation_amplitude(p2, k1, l))*asymmetry_variable(k1, l, z)
                                     +(radiation_amplitude(p1, k2, l)+radiation_amplitude(p2, k2, l))*asymmetry_variable(k2, l, z))
+            # final-final color connections
             radiation_amplitude_kk += radiation_amplitude(k1, k2, l)*(asymmetry_variable(k1, l, z)+asymmetry_variable(k2, l, z))
         radiation_amplitude_combined = (radiation_amplitude_pk + radiation_amplitude_kk)/5
         return radiation_amplitude_combined/Nevents
