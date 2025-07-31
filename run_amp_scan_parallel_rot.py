@@ -16,8 +16,12 @@ introduce a small mass to the parton.
 
 TO DO:
 1. Implement an eta cut(-2.5 to 2.5) to both the splitting jet and the radiation l.
-2. Implement a delta R cut (>0.25) to the splitting jet and the radiation l.
+2. Implement a delta R cut (<0.35) to the splitting jet and the radiation l.
 3. Normalize the asymmetry rate.
+
+July 25, 2025
+DUMB MISTAKE: wrong histogram. density=True is not what we want.
+mjj channel 007 not 006 2000-2250GeV
 """
 
 no = 1
@@ -41,19 +45,22 @@ def get_l_list(p):
     l_list = []
     for i in range(Ngrid):
         for j in range(Ngrid):
-            # sample l randomly wrt to cos(theta) and phi.
+            # sample l randomly wrt to phi and eta
             phi = np.random.uniform(0.0, 2.0*np.pi)
             eta = np.random.uniform(-5.0, 5.0)
             l_cm = [np.cosh(eta), np.cos(phi), np.sin(phi), np.sinh(eta)]
-            # boost the particle from rest frame of the parton to lab frame
+            # rotate the particle from rest frame of the parton to lab frame
             l_rot = np.dot(rotation_matrix(p), l_cm)
             # calculate pseudorapidity
             eta_rot = np.arctanh(l_rot[3]/l_rot[0])
             if eta_rot < -2.5 or eta_rot > 2.5:
                 continue
             # calculate delta R
-            delta_r = np.sqrt((l_rot[1] - p[1])**2 + (l_rot[2] - p[2])**2)
-            if delta_r < 0.25:
+            delta_phi = np.arctan2(np.sin(eta_phi(l_rot)[1] - eta_phi(p)[1]), np.cos(eta_phi(l_rot)[1] - eta_phi(p)[1]))
+            delta_eta = eta_rot - eta_phi(p)[0]
+            delta_r = np.sqrt(delta_phi**2 + delta_eta**2)
+            #print(delta_phi, delta_eta, delta_r)
+            if delta_r > 0.35:
                 continue
             l_list.append(l_rot)
             #l_list.append([np.cosh(eta_list[j]), np.cos(phi_list[i]), np.sin(phi_list[i]), np.sinh(eta_list[j])])
@@ -67,6 +74,7 @@ def eta_phi(k):
     return np.arctanh(k[3]/k[0]), np.arctan2(k[2], k[1])
 # calculate the radiation amplitude, assuming lT = 1
 def radiation_amplitude(k1, k2, l):
+    # this blows up when l and k1/k2 are collinear
     return dot_product(k1, k2)/(dot_product(l, k1)*dot_product(l, k2))
 
 def asymmetry_angle(k, l, z):
@@ -91,6 +99,7 @@ def calculate_amplitude(args):
     radiation_amplitude_pk = 0
     radiation_amplitude_kk = 0
     radiation_amplitude_pk_weighted = 0
+    asym = 0
     # smaple radiation l around k1
     l_list = get_l_list(k)
     #print(f"Event {event_no}: {len(l_list)} radiation vectors sampled.")
@@ -100,15 +109,21 @@ def calculate_amplitude(args):
         l = l_list[i]
         radiation_amplitude_pk_weighted += (radiation_amplitude(p1, k, l)+radiation_amplitude(p2, k, l))*asymmetry_variable(k, l, z)
         radiation_amplitude_pk += radiation_amplitude(p1, k, l) + radiation_amplitude(p2, k, l)
+        asym += asymmetry_variable(k, l, z)
         #radiation_amplitude_kk += radiation_amplitude(k1, k2, l)*(asymmetry_variable(k1, l, z)+asymmetry_variable(k2, l, z))
     #radiation_amplitude_combined = (radiation_amplitude_pk + radiation_amplitude_kk)/5
-    normalized_amplitude = radiation_amplitude_pk_weighted/radiation_amplitude_pk
-    return [normalized_amplitude/(len(l_list)), eta_phi(k)[0]]
+    if radiation_amplitude_pk == 0:
+        return [0, 0, eta_phi(k)[0],0]
+    else:
+        normalized_amplitude = radiation_amplitude_pk_weighted/radiation_amplitude_pk
+        return [normalized_amplitude, radiation_amplitude_pk, eta_phi(k)[0], asym]
 
 #for CHN in range(1, 10):
-CHN = 1
+CHN = 2
 events = pylhe.read_lhe_with_attributes(f"events/500k_channels_eta2.5/run_0{CHN}/unweighted_events.lhe")
 Nevents = int(5e5)
+# events = pylhe.read_lhe_with_attributes(f"events/10k_channels/run_0{CHN}/unweighted_events.lhe")
+# Nevents = int(1e4)
 particle_list = []
 
 # load particles from the LHE file
@@ -137,7 +152,7 @@ Ngrid = 100
 ######## Set up Parameter Scan ########
 
 # Prepare arguments for multiprocessing
-args = [i for i in range(Nevents)]
+args = [i for i in range(1000)]
 #args = [(i, j, phi_list, eta_list, particle_list, z) for i in range(len(phi_list)) for j in range(len(eta_list))]
 
 # run scan in parallel
@@ -147,7 +162,13 @@ if __name__ == "__main__":
         results = list(tqdm(pool.imap(calculate_amplitude, args), total=len(args)))
     # Collect results
     amp_list_combined = np.array([result[0] for result in results])
-    k_list = np.array([result[1] for result in results])
+    rad_list_combined = np.array([result[1] for result in results])
+    k_list = np.array([result[2] for result in results])
+    asym_list = np.array([result[3] for result in results])
     # save the data
-    np.save(f'data/500k_rot_cut/amp_list_real_500k_k1{CHN}.npy', amp_list_combined)
-    np.save(f'data/500k_rot_cut/k_list_real_500k_k1{CHN}.npy', k_list)
+    np.save(f'data/500k_rot_cut/amp_list.npy', amp_list_combined)
+    np.save(f'data/500k_rot_cut/rad_list.npy', rad_list_combined)
+    #np.save(f'data/500k_rot_cut/weighted_amp_list_real_{CHN}_test1.npy', weighted_amp_list_combined)
+    np.save(f'data/500k_rot_cut/k_list.npy', k_list)
+    np.save(f'data/500k_rot_cut/asym_list.npy', asym_list)
+
